@@ -1,0 +1,25 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+
+:root{
+  --primary:#6c42ff;
+  --accent:#ff9bd0;
+}
+
+html,body,#root{ height:100%; margin:0; }
+
+.app-root{
+  min-height:100vh;
+  font-family: Inter, system-ui, -apple-system, 'Noto Sans Myanmar', 'Noto Sans JP', 'Noto Sans SC', sans-serif;
+  color:#fff;
+  display:flex;
+  align-items:flex-start;
+  justify-content:center;
+  padding: 24px 12px;
+}
+
+.bg-gradient{
+  position:fixed; inset:0; z-index:-1;
+  background: linear-gradient(135deg, #6c42ff 0%, #a86bff 60%, #f3b7ff 100%);
+}
+
+.app-shell{ width:100%; max-width:980px; display:flex; gap:24px; align-items:flex-start; }

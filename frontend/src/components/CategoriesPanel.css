@@ -1,0 +1,36 @@
+.cc-categories {
+  width: 100%;
+  max-width: 320px;
+  margin: 12px auto;
+  color: white;
+  padding: 18px;
+  box-sizing: border-box;
+}
+
+.cc-panel-header {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:16px;
+}
+
+.cc-panel-header h3 { margin:0; font-weight:700; font-size:20px; }
+.cc-lang-select { font-size:14px; opacity:0.95; cursor:pointer; }
+
+.cc-category-list { display:flex; flex-direction:column; gap:12px; }
+
+.cc-category {
+  background: rgba(255,255,255,0.06);
+  padding:12px;
+  border-radius:12px;
+  display:flex;
+  justify-content:space-between;
+  gap:12px;
+  align-items:center;
+}
+
+.cc-cat-left { flex:1; }
+.cc-cat-title { font-weight:600; font-size:16px; color:#fff; }
+.cc-cat-sub { font-size:13px; opacity:0.85; margin-top:6px; color:#f0e9ff; }
+
+.cc-cat-right { width:120px; }
