@@ -1,51 +1,71 @@
-import express from 'express'
-import vision from '@google-cloud/vision'
-import fetch from 'node-fetch'
+import express from 'express';
+import { createWorker } from 'tesseract.js';
+import nlp from 'compromise';
+import fs from 'fs';
+import path from 'path';
+import multer from 'multer';
 
-const router = express.Router()
-const visionClient = new vision.ImageAnnotatorClient()
+const router = express.Router();
 
-async function callLLMGenerateFlashcards(text: string, targetLang = 'en'){
-  const prompt = `You are an educational AI assistant. Given the text below, extract terms and create flashcards. Output JSON array: [{\"front\":\"...\",\"back\":\"...\",\"confidence\":0.0,\"tags\":[]}]. Target language: ${targetLang}\n----\n${text}`
+// Ensure upload directory exists
+const uploadDir = path.join(process.cwd(), 'server', 'uploads');
+if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+const upload = multer({ dest: uploadDir });
 
-  const resp = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`
-    },
-    body: JSON.stringify({ model: 'gpt-4o-mini', messages: [{ role: 'user', content: prompt }], max_tokens: 800 })
-  })
-  const body = await resp.json()
-  const content = body?.choices?.[0]?.message?.content
-  try{
-    return JSON.parse(content)
-  }catch(e){
-    return [{ front: 'Generated', back: content || 'No response', confidence: 0.5, tags: [] }]
+// Simple template-based definition generator
+function generateDefinition(term: string, contextText: string) {
+  const sentences = contextText.split(/(?<=[.?!])\s+/);
+  const lower = term.toLowerCase();
+  const found = sentences.find((s) => s.toLowerCase().includes(lower));
+  if (found) {
+    return found.trim().replace(/\s+/g, ' ').slice(0, 400);
   }
+  return `${term} — key concept from the provided text. (Review source sentence for full context.)`;
 }
 
-router.post('/ocr-to-cards', async (req, res)=>{
-  // Expect { imageGcsUri?: string, imageBase64?: string, targetLang?: string }
-  const { imageGcsUri, imageBase64, targetLang } = req.body
-  try{
-    let fullText = ''
-    if(imageGcsUri){
-      const [result] = await visionClient.documentTextDetection(imageGcsUri)
-      fullText = result.fullTextAnnotation?.text || ''
-    }else if(imageBase64){
-      const [result] = await visionClient.documentTextDetection({ image: { content: imageBase64 } })
-      fullText = result.fullTextAnnotation?.text || ''
-    }else{
-      return res.status(400).json({ success:false, error: 'Missing imageGcsUri or imageBase64' })
-    }
+// Extract candidate terms (nouns/noun-phrases) using compromise
+function extractTerms(text: string, max = 25) {
+  const doc = nlp(text);
+  const nouns = doc.nouns().out('array');
+  const phrases = doc.nouns().terms().out('array');
+  const candidates = nouns.concat(phrases).map((s) => s.trim()).filter(Boolean);
+  const uniq = Array.from(new Set(candidates)).slice(0, max);
+  return uniq;
+}
 
-    const cards = await callLLMGenerateFlashcards(fullText, targetLang || 'en')
-    return res.json({ success:true, cards })
-  }catch(err:any){
-    console.error(err)
-    return res.status(500).json({ success:false, error: String(err) })
+async function runOCR(imagePath: string) {
+  const worker = createWorker({ logger: (m) => {} });
+  await worker.load();
+  await worker.loadLanguage('eng');
+  await worker.initialize('eng');
+  const { data } = await worker.recognize(imagePath);
+  await worker.terminate();
+  return data.text || '';
+}
+
+router.post('/upload-and-ocr', upload.single('image'), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ success: false, error: 'Missing image file' });
+
+    const imagePath = req.file.path;
+    const ocrText = await runOCR(imagePath);
+
+    const cleaned = ocrText.replace(/\s{2,}/g, ' ').trim();
+
+    const terms = extractTerms(cleaned, 40);
+
+    const cards = terms.map((t) => ({
+      front: t,
+      back: generateDefinition(t, cleaned),
+      confidence: 0.6,
+      tags: [],
+    }));
+
+    return res.json({ success: true, cards, rawText: cleaned, uploaded: req.file.filename });
+  } catch (err: any) {
+    console.error(err);
+    return res.status(500).json({ success: false, error: String(err) });
   }
-})
+});
 
-export default router
+export default router;

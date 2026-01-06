@@ -1,32 +1,33 @@
 # Cognitive Catalyst - Shuffle (Starter Scaffold)
 
-This repository contains a starter scaffold for "Cognitive Catalyst" frontend and backend: a React + TypeScript frontend and a Node.js (Express) backend with a sample OCR -> flashcard route and UI components inspired by the UI image provided.
+This repository contains a starter scaffold for "Cognitive Catalyst" frontend and backend with a free, self-hosted stack option. The server uses Tesseract OCR and open-source NLP to generate flashcards from images without paid cloud APIs.
 
-Quick setup (local)
+Free stack highlights
+- OCR: tesseract.js (runs locally on the server)
+- NLP / term extraction: compromise
+- Auth: optional local username/email + password with bcrypt + JWT (file-based store)
+- Storage: uploaded images saved to server/uploads
+- Database: simple file-based JSON store (server/data) or swap to SQLite later
 
-Prerequisites: Node.js 18+, npm or yarn, Google Cloud or OpenAI API keys if you plan to enable OCR/LLM features.
+Local setup (no paid APIs required)
+1. Clone the repo
+   git clone https://github.com/dayemar45-maker/Shuffle
+   cd Shuffle
 
-1. Install frontend dependencies
+2. Install frontend
    cd frontend
    npm install
+   npm run dev
 
-2. Install server dependencies
+3. Install server
    cd ../server
    npm install
-
-3. Create environment file(s)
-   - Copy server/.env.example -> server/.env and fill API keys (OPENAI_API_KEY, GOOGLE_APPLICATION_CREDENTIALS or VISION_API_KEY) and other placeholders.
-
-4. Run frontend (development)
-   cd frontend
+   copy server/.env.example to server/.env and set JWT_SECRET if you plan to use auth
    npm run dev
 
-5. Run server (development)
-   cd server
-   npm run dev
+4. Use the OCR endpoint
+   - POST multipart/form-data to http://localhost:4000/api/ai/upload-and-ocr with field `image` set to a file
+   - The server will return generated flashcards and the OCR raw text
 
-Notes
-- This scaffold includes a React component CardStack and CategoriesPanel to reproduce the UI style you provided.
-- The backend includes a minimal Express route for OCR -> LLM flashcard generation; you must supply API keys and configure Google Cloud credentials.
-
-License: MIT
+Security note
+- This scaffold stores user data in files for simplicity. For production, migrate to a proper database (SQLite/Postgres) and secure file storage.
