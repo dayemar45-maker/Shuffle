@@ -3,7 +3,9 @@ import cors from 'cors';
 import bodyParser from 'body-parser';
 import path from 'path';
 import ocrRoute from './routes/ocr-to-flashcards';
-import authRoute from './routes/auth';
+import textRoute from './routes/text-analysis';
+import cardsRoute from './routes/cards';
+import authRoute, { authMiddleware } from './auth-sqlite';
 
 const app = express();
 app.use(cors());
@@ -15,6 +17,8 @@ app.use('/uploads', express.static(path.join(process.cwd(), 'server', 'uploads')
 
 app.use('/api/auth', authRoute);
 app.use('/api/ai', ocrRoute);
+app.use('/api/ai', textRoute);
+app.use('/api/cards', authMiddleware, cardsRoute);
 
 const port = process.env.PORT || 4000;
 app.listen(port, () => console.log(`Server listening on ${port}`));
